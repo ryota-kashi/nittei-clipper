@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>日程クリッパー</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<h1>日程クリッパー</h1>
+
+<!-- カレンダー -->
+<div class="card">
+  <div class="cal-header">
+    <button class="cal-nav" id="prevMonth">‹</button>
+    <div class="cal-month" id="calMonth"></div>
+    <button class="cal-nav" id="nextMonth">›</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- 時間ピッカー -->
+<div class="card time-picker" id="timePicker">
+  <div class="time-label" id="timeLabel"></div>
+  <div id="startSection">
+    <div class="time-grid" id="startGrid"></div>
+  </div>
+  <div id="endSection" style="display:none">
+    <div class="time-grid" id="endGrid"></div>
+  </div>
+</div>
+
+<!-- プレビュー -->
+<div class="card preview-card" id="previewCard">
+  <div class="preview-text" id="previewText"><span class="preview-placeholder">日付を選ぶと
+ここに表示されます</span></div>
+  <button class="copy-btn" id="copyBtn">コピーする</button>
+  <button class="reset-btn" id="resetBtn">リセットする</button>
+</div>
+
+<footer>
+  © Ryota Kashiwagi
+</footer>
+
+<script src="popup.js"></script>
+</body>
+</html>
