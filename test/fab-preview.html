@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>FABプレビュー（content script確認用）</title>
-<link rel="stylesheet" href="../content.css">
+<link rel="stylesheet" href="../src/content.css">
 <style>
   body { font-family: sans-serif; background: #f8f9fa; padding: 40px; }
 </style>
@@ -15,6 +15,6 @@
   // content scriptのchrome API呼び出しをスタブ化
   window.chrome = { runtime: { sendMessage: (m) => alert('sendMessage: ' + JSON.stringify(m)) } };
 </script>
-<script src="../content.js"></script>
+<script src="../src/content.js"></script>
 </body>
 </html>

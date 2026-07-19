@@ -22,22 +22,33 @@ Chrome拡張機能。
 - **状態駆動アーキテクチャ**: 単一のstateとrender()による一方向データフロー
 - **Googleカレンダー連携**: calendar.google.com の画面右下の起動ボタンから**サイドパネル**で開く
   （カレンダーの予定と重ならずに並べて使える）
-- ダークモード対応（OS設定に自動追従）、reduced-motion対応
+- **テーマ切替**: 紙白／藍染め／セピア／OS自動追従の4種をヘッダーのインク見本から選択
+  （`chrome.storage.sync` で端末をまたいで保存）。reduced-motion対応
 
 ## インストール
 
 1. Chromeで `chrome://extensions` を開く
 2. 右上の「デベロッパーモード」をON
-3. 「パッケージ化されていない拡張機能を読み込む」でこのフォルダを選択
+3. 「パッケージ化されていない拡張機能を読み込む」で `src/` フォルダを選択
+
+## ストア提出用ZIPの作成
+
+```bash
+./scripts/package.sh   # dist/nittei-clipper-v{version}.zip を生成
+```
 
 ## 構成
 
-- `manifest.json` … Manifest V3（権限: clipboardWrite / storage / calendar.google.com）
-- `popup.html` / `popup.css` / `popup.js` … ポップアップ本体（ビルド不要）
-- `background.js` … サービスワーカー（カレンダー上のボタンからポップアップを起動）
-- `content.js` / `content.css` … Googleカレンダー用の起動ボタン
-- `holidays.js` … 日本の祝日計算エンジン
-- `formats.js` … 出力形式の定義
-- `test/holidays.test.js` … 祝日エンジンの検証（`node test/holidays.test.js`）
-- `icons/` … アイコン
-- `docs/` … 設計メモ
+```
+src/                 … 拡張機能本体（これをZIP化して提出）
+├── manifest.json    … Manifest V3（権限: clipboardWrite / storage / sidePanel / calendar.google.com）
+├── popup.html/css/js … ポップアップ・サイドパネル本体（ビルド不要）
+├── background.js    … サービスワーカー（カレンダー上のボタンからサイドパネルを起動）
+├── content.js/css   … Googleカレンダー用の起動ボタン
+├── holidays.js      … 日本の祝日計算エンジン
+├── formats.js       … 出力形式の定義
+└── icons/           … アイコン
+test/                … 祝日エンジンの検証（node test/holidays.test.js）とFABプレビュー
+scripts/package.sh   … ストア提出用ZIPの生成
+docs/                … 設計メモ・ストア掲載文
+```

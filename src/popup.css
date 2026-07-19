@@ -1,5 +1,8 @@
-/* 日程クリッパー — 配色トークン
-   紙白×墨×インク青緑の文具モチーフ。日曜・祝日の赤、土曜の青と干渉しない1アクセント。 */
+/* 日程クリッパー — 配色トークン（文具モチーフ）
+   テーマは html[data-theme] で切替: paper（紙白）/ indigo（藍染め）/ sepia（書斎）/ auto（OS追従）
+   ※ 無彩色の黒背景は使わない。ダーク系も「染めた紙」の色味で統一する。 */
+
+/* 紙白（デフォルト / auto+OSライト） */
 :root {
   --paper: #fbfbf9;
   --surface: #ffffff;
@@ -14,19 +17,51 @@
   --shadow: 0 1px 2px rgba(35, 38, 43, .05), 0 6px 20px rgba(35, 38, 43, .07);
 }
 
+/* 藍染め（インディゴに染めた紙 + 生成りの文字）
+   ※ auto用のメディアクエリ内と同じ値。変更時は両方を更新すること */
+:root[data-theme="indigo"] {
+  --paper: #172136;
+  --surface: #1f2c47;
+  --ink: #ebe5d4;
+  --muted: #8fa0b8;
+  --line: #2e3d5c;
+  --accent: #45c0ac;
+  --accent-soft: rgba(69, 192, 172, .16);
+  --on-accent: #0d2420;
+  --sun: #e8938b;
+  --sat: #9ab0f2;
+  --shadow: 0 1px 2px rgba(4, 8, 18, .4), 0 6px 20px rgba(4, 8, 18, .45);
+}
+
+/* 書斎のセピア（焦げ茶の紙 + 山吹のアクセント） */
+:root[data-theme="sepia"] {
+  --paper: #241d12;
+  --surface: #302818;
+  --ink: #efe6d2;
+  --muted: #a3947a;
+  --line: #443a26;
+  --accent: #d9a733;
+  --accent-soft: rgba(217, 167, 51, .16);
+  --on-accent: #2a2008;
+  --sun: #e2907b;
+  --sat: #a3ace2;
+  --shadow: 0 1px 2px rgba(10, 7, 2, .4), 0 6px 20px rgba(10, 7, 2, .45);
+}
+
+/* 自動: OSがダークのときは藍染めを使う */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #1b1d21;
-    --surface: #24272d;
-    --ink: #e8e8e4;
-    --muted: #8b9097;
-    --line: #33373e;
-    --accent: #3fbfaf;
-    --accent-soft: rgba(63, 191, 175, .14);
-    --on-accent: #12211f;
-    --sun: #e07b74;
-    --sat: #8aa0e8;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .35);
+  :root[data-theme="auto"] {
+    --paper: #172136;
+    --surface: #1f2c47;
+    --ink: #ebe5d4;
+    --muted: #8fa0b8;
+    --line: #2e3d5c;
+    --accent: #45c0ac;
+    --accent-soft: rgba(69, 192, 172, .16);
+    --on-accent: #0d2420;
+    --sun: #e8938b;
+    --sat: #9ab0f2;
+    --shadow: 0 1px 2px rgba(4, 8, 18, .4), 0 6px 20px rgba(4, 8, 18, .45);
   }
 }
 
@@ -71,6 +106,26 @@ button:focus-visible {
   font-size: 14px;
   font-weight: 800;
   letter-spacing: .12em;
+}
+
+/* テーマ切替（インク見本のスウォッチ） */
+.theme-picker {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  padding: 0;
+  transition: transform .12s, box-shadow .12s;
+}
+.theme-swatch:hover { transform: scale(1.15); }
+.theme-swatch.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 main { display: flex; flex-direction: column; gap: 14px; }

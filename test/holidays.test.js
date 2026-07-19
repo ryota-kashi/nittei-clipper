@@ -1,7 +1,7 @@
 // 祝日計算エンジンの検証（内閣府公表の2025〜2027年祝日一覧と突合）
 // 実行: node test/holidays.test.js
 
-const JPHolidays = require('../holidays.js');
+const JPHolidays = require('../src/holidays.js');
 
 const EXPECTED = {
   2025: [

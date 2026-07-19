@@ -16,8 +16,17 @@ const state = {
   slots: [],        // { id, date: 'YYYY-MM-DD', start: 'H:MM'|null, end: 'H:MM'|null }
   editingId: null,  // 時間帯エディタを開いている候補のid
   format: 'standard',
+  theme: 'auto',    // paper | indigo | sepia | auto（OS追従）
   copied: false,    // コピー直後のボタン表示用
 };
+
+// テーマ一覧（swatchはヘッダーのインク見本の色）
+const THEMES = [
+  { id: 'auto',   label: '自動（OSに合わせる）', swatch: 'linear-gradient(135deg, #fbfbf9 50%, #172136 50%)' },
+  { id: 'paper',  label: '紙白',   swatch: '#fbfbf9' },
+  { id: 'indigo', label: '藍染め', swatch: '#172136' },
+  { id: 'sepia',  label: 'セピア', swatch: '#241d12' },
+];
 
 let nextId = 1;
 
@@ -39,17 +48,18 @@ function persist() {
   storage.session?.set({
     work: { slots: state.slots, editingId: state.editingId, view: state.view, nextId },
   });
-  storage.sync?.set({ format: state.format });
+  storage.sync?.set({ format: state.format, theme: state.theme });
 }
 
 async function restore() {
   if (!storage) return;
-  const [{ work }, { format }] = await Promise.all([
+  const [{ work }, { format, theme }] = await Promise.all([
     storage.session?.get('work') ?? {},
-    storage.sync?.get('format') ?? {},
+    storage.sync?.get(['format', 'theme']) ?? {},
   ]);
   if (work) applyWork(work);
   if (format) state.format = format;
+  if (theme) state.theme = theme;
 }
 
 // 保存されていた作業状態をstateへ反映する（persistはしない）
@@ -70,9 +80,17 @@ if (storage) {
       applyWork(changes.work.newValue);
       render();
     }
-    if (area === 'sync' && changes.format && changes.format.newValue !== state.format) {
-      state.format = changes.format.newValue;
-      render();
+    if (area === 'sync') {
+      let changed = false;
+      if (changes.format && changes.format.newValue !== state.format) {
+        state.format = changes.format.newValue;
+        changed = true;
+      }
+      if (changes.theme && changes.theme.newValue !== state.theme) {
+        state.theme = changes.theme.newValue;
+        changed = true;
+      }
+      if (changed) render();
     }
   });
 }
@@ -117,10 +135,27 @@ function el(tag, className, text) {
 // ── 描画 ──────────────────────────────────────────
 
 function render() {
+  document.documentElement.dataset.theme = state.theme;
+  renderThemePicker();
   renderCalendar();
   renderTimeEditor();
   renderSlotList();
   renderOutput();
+}
+
+function renderThemePicker() {
+  const picker = document.getElementById('themePicker');
+  picker.replaceChildren();
+  THEMES.forEach(t => {
+    const btn = el('button', 'theme-swatch' + (t.id === state.theme ? ' is-active' : ''));
+    btn.style.background = t.swatch;
+    btn.title = t.label;
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', String(t.id === state.theme));
+    btn.setAttribute('aria-label', `テーマ: ${t.label}`);
+    btn.addEventListener('click', () => update(s => { s.theme = t.id; }));
+    picker.appendChild(btn);
+  });
 }
 
 function renderCalendar() {
