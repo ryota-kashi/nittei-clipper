@@ -27,7 +27,6 @@ const OutputFormats = (() => {
     {
       id: 'standard',
       label: '標準',
-      header: '以下の日程でご都合いかがでしょうか。',
       line(slot) {
         const { m, d, dow } = parts(slot);
         const time = timeRange(slot, '〜');
@@ -37,7 +36,6 @@ const OutputFormats = (() => {
     {
       id: 'bullet',
       label: '箇条書き',
-      header: '下記日程でご都合いかがでしょうか。',
       line(slot) {
         const { m, d, dow } = parts(slot);
         const time = timeRange(slot, '-');
@@ -47,7 +45,6 @@ const OutputFormats = (() => {
     {
       id: 'english',
       label: 'English',
-      header: 'Would any of the following times work for you?',
       line(slot) {
         const { m, d, dow } = parts(slot);
         const time = timeRange(slot, '–');
@@ -62,7 +59,7 @@ const OutputFormats = (() => {
 
   function render(slots, formatId) {
     const fmt = byId(formatId);
-    return fmt.header + '\n' + slots.map(s => fmt.line(s)).join('\n');
+    return slots.map(s => fmt.line(s)).join('\n');
   }
 
   return { FORMATS, byId, render };
