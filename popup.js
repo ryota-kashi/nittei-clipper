@@ -1,263 +1,281 @@
-// 日程クリッパー — 日程候補の提案文を作成してコピーするポップアップ
+// 日程クリッパー — UI本体
+// 単一のstateオブジェクトとrender()による状態駆動アーキテクチャ。
+// イベント → 状態更新(update) → 全体再描画 の一方向フローで統一する。
 
-const HOLIDAYS = new Set([
-  '2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24',
-  '2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06',
-  '2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13',
-  '2025-11-03','2025-11-23','2025-11-24','2025-12-23',
-  '2026-01-01','2026-01-12','2026-02-11','2026-02-23',
-  '2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06',
-  '2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12',
-  '2026-11-03','2026-11-23',
-  '2027-01-01','2027-01-11','2027-02-11','2027-02-23',
-  '2027-03-20','2027-03-21','2027-04-29','2027-05-03','2027-05-04','2027-05-05',
-  '2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11',
-  '2027-11-03','2027-11-23',
-]);
+// ── 状態 ──────────────────────────────────────────
 
-const DAYS_JA = ['日','月','火','水','木','金','土'];
-const today = new Date(); today.setHours(0,0,0,0);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
 
-let viewYear  = today.getFullYear();
-let viewMonth = today.getMonth();
+const state = {
+  view: { year: today.getFullYear(), month: today.getMonth() }, // 表示中の月
+  slots: [],        // { id, date: 'YYYY-MM-DD', start: 'H:MM'|null, end: 'H:MM'|null }
+  editingId: null,  // 時間帯エディタを開いている候補のid
+  format: 'standard',
+  copied: false,    // コピー直後のボタン表示用
+};
 
-// slots: { key, label, start, end }[]
-// editing: 時間編集中のスロットのインデックス（null = 編集なし）
-let slots   = [];
-let editing = null;
+let nextId = 1;
 
-// ── 状態保存（ポップアップはフォーカスが外れると閉じるため）──
-const canStore = typeof chrome !== 'undefined' && chrome.storage?.session;
-
-function saveState() {
-  if (!canStore) return;
-  chrome.storage.session.set({ state: { slots, editing, viewYear, viewMonth } });
+// 状態を書き換えて再描画する唯一の入口
+function update(mutate) {
+  mutate(state);
+  persist();
+  render();
 }
 
-async function restoreState() {
-  if (!canStore) return;
-  const { state } = await chrome.storage.session.get('state');
-  if (!state) return;
-  slots     = state.slots ?? [];
-  editing   = state.editing ?? null;
-  viewYear  = state.viewYear ?? viewYear;
-  viewMonth = state.viewMonth ?? viewMonth;
+// ── 永続化 ──────────────────────────────────────────
+// 候補はセッション単位（ポップアップを閉じても消えないが、ブラウザ再起動で消える）。
+// 出力形式は端末をまたいで残す。
+
+const storage = typeof chrome !== 'undefined' && chrome.storage ? chrome.storage : null;
+
+function persist() {
+  if (!storage) return;
+  storage.session?.set({
+    work: { slots: state.slots, editingId: state.editingId, view: state.view, nextId },
+  });
+  storage.sync?.set({ format: state.format });
 }
 
-// ── ユーティリティ ──
-function fmtTime(t) {
-  const [h, m] = t.split(':');
-  return `${parseInt(h)}:${m}`;
-}
-
-function makeTimes() {
-  const list = [];
-  for (let h = 8; h <= 22; h++) {
-    list.push(`${h}:00`);
-    list.push(`${h}:30`);
+async function restore() {
+  if (!storage) return;
+  const [{ work }, { format }] = await Promise.all([
+    storage.session?.get('work') ?? {},
+    storage.sync?.get('format') ?? {},
+  ]);
+  if (work) {
+    state.slots = work.slots ?? [];
+    state.editingId = work.editingId ?? null;
+    state.view = work.view ?? state.view;
+    nextId = work.nextId ?? state.slots.length + 1;
   }
-  return list;
-}
-const ALL_TIMES = makeTimes();
-
-function toKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function toLabel(key) {
-  const [y,m,d] = key.split('-').map(Number);
-  return `${m}月${d}日（${DAYS_JA[new Date(y,m-1,d).getDay()]}）`;
+  if (format) state.format = format;
 }
 
-// ── カレンダー ──
+// ── ユーティリティ ──────────────────────────────────
+
+const DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
+
+// 8:00〜22:30 を30分刻みで
+const TIME_CHOICES = [];
+for (let h = 8; h <= 22; h++) TIME_CHOICES.push(`${h}:00`, `${h}:30`);
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+// '9:30' → 570（比較用の分数値）
+function toMinutes(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function sortedSlots() {
+  return [...state.slots].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    if (!a.start || !b.start) return a.start ? 1 : -1;
+    return toMinutes(a.start) - toMinutes(b.start);
+  });
+}
+
+function editingSlot() {
+  return state.slots.find(s => s.id === state.editingId) ?? null;
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// ── 描画 ──────────────────────────────────────────
+
+function render() {
+  renderCalendar();
+  renderTimeEditor();
+  renderSlotList();
+  renderOutput();
+}
+
 function renderCalendar() {
-  const first = new Date(viewYear, viewMonth, 1);
-  const last  = new Date(viewYear, viewMonth+1, 0);
-  document.getElementById('calMonth').textContent = `${viewYear}年${viewMonth+1}月`;
+  const { year, month } = state.view;
+  document.getElementById('calMonth').textContent = `${year}年${month + 1}月`;
+
   const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
+  grid.replaceChildren();
 
-  DAYS_JA.forEach((d,i) => {
-    const el = document.createElement('div');
-    el.className = 'cal-dow' + (i===0?' sun': i===6?' sat':'');
-    el.textContent = d;
-    grid.appendChild(el);
+  DOW_JA.forEach((d, i) => {
+    const cls = 'cal-dow' + (i === 0 ? ' is-sun' : i === 6 ? ' is-sat' : '');
+    grid.appendChild(el('div', cls, d));
   });
 
-  for (let i=0; i<first.getDay(); i++) {
-    const el = document.createElement('button');
-    el.className = 'cal-day empty';
-    grid.appendChild(el);
-  }
+  const firstDow = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  for (let i = 0; i < firstDow; i++) grid.appendChild(el('div', 'cal-cell is-blank'));
 
-  for (let d=1; d<=last.getDate(); d++) {
-    const date = new Date(viewYear, viewMonth, d);
-    const key  = toKey(date);
-    const dow  = date.getDay();
-    const btn  = document.createElement('button');
-    const cls  = ['cal-day'];
-    if (dow===0) cls.push('sun');
-    if (dow===6) cls.push('sat');
-    if (HOLIDAYS.has(key)) cls.push('holiday');
-    if (date < today) cls.push('past');
-    // 編集中のスロットの日付をハイライト
-    if (editing !== null && slots[editing]?.key === key) cls.push('active');
-    btn.className = cls.join(' ');
-    btn.textContent = d;
-    if (date >= today) btn.addEventListener('click', () => onDateClick(key));
+  const selectedDates = new Set(state.slots.map(s => s.date));
+  const editing = editingSlot();
+
+  for (let d = 1; d <= lastDate; d++) {
+    const date = new Date(year, month, d);
+    const key = dateKey(year, month, d);
+    const holiday = JPHolidays.nameOf(key);
+
+    const btn = el('button', 'cal-cell', String(d));
+    if (date < today) btn.classList.add('is-past');
+    else {
+      if (date.getDay() === 0 || holiday) btn.classList.add('is-sun');
+      else if (date.getDay() === 6) btn.classList.add('is-sat');
+      btn.addEventListener('click', () => addSlot(key));
+    }
+    if (holiday) btn.title = holiday;
+    if (date.getTime() === today.getTime()) btn.classList.add('is-today');
+    if (selectedDates.has(key)) btn.classList.add('has-slot');
+    if (editing?.date === key) btn.classList.add('is-editing');
     grid.appendChild(btn);
   }
 }
 
-// ── 日付クリック ──
-function onDateClick(key) {
-  slots.push({ key, label: toLabel(key), start: null, end: null });
-  editing = slots.length - 1;
-  renderCalendar();
-  updatePreview();
-  showStartPicker();
-  saveState();
-}
+function renderTimeEditor() {
+  const editor = document.getElementById('timeEditor');
+  const slot = editingSlot();
+  editor.hidden = !slot;
+  if (!slot) return;
 
-// ── 時間グリッドを初期描画 ──
-function initTimeGrids() {
-  const grid = document.getElementById('startGrid');
-  grid.innerHTML = '';
-  ALL_TIMES.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 't-btn';
-    btn.textContent = fmtTime(t);
-    btn.addEventListener('click', () => onStartClick(t));
+  document.getElementById('timeEditorTitle').textContent =
+    OutputFormats.byId('standard').line({ ...slot, start: null });
+  document.getElementById('timeEditorHint').textContent =
+    !slot.start ? '開始時間をタップ' : !slot.end ? '終了時間をタップ' : 'タップで選び直し';
+
+  const grid = document.getElementById('timeGrid');
+  grid.replaceChildren();
+
+  const startMin = slot.start ? toMinutes(slot.start) : null;
+  const endMin = slot.end ? toMinutes(slot.end) : null;
+
+  TIME_CHOICES.forEach(t => {
+    const btn = el('button', 't-cell', t);
+    const min = toMinutes(t);
+    if (min === startMin || min === endMin) btn.classList.add('is-edge');
+    else if (startMin !== null && endMin !== null && min > startMin && min < endMin) {
+      btn.classList.add('is-range');
+    }
+    btn.addEventListener('click', () => pickTime(t));
     grid.appendChild(btn);
   });
-  const egrid = document.getElementById('endGrid');
-  egrid.innerHTML = '';
-  ALL_TIMES.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 't-btn';
-    btn.textContent = fmtTime(t);
-    btn.addEventListener('click', () => onEndClick(t));
-    egrid.appendChild(btn);
+}
+
+function renderSlotList() {
+  const list = document.getElementById('slotList');
+  list.replaceChildren();
+
+  sortedSlots().forEach(slot => {
+    const row = el('div', 'slot-row' + (slot.id === state.editingId ? ' is-editing' : ''));
+
+    const label = el('button', 'slot-label', OutputFormats.byId('standard').line(slot));
+    label.title = '時間帯を編集';
+    label.addEventListener('click', () =>
+      update(s => { s.editingId = s.editingId === slot.id ? null : slot.id; }));
+
+    const remove = el('button', 'slot-remove', '✕');
+    remove.setAttribute('aria-label', '候補を削除');
+    remove.addEventListener('click', () =>
+      update(s => {
+        s.slots = s.slots.filter(x => x.id !== slot.id);
+        if (s.editingId === slot.id) s.editingId = null;
+      }));
+
+    row.append(label, remove);
+    list.appendChild(row);
   });
 }
 
-// ── 開始時間選択待ち状態にする ──
-function showStartPicker() {
-  document.getElementById('timePicker').classList.add('visible');
-  document.getElementById('timeLabel').textContent = '開始時間（選ばなくてもOK）';
-  document.getElementById('startSection').style.display = 'block';
-  document.getElementById('endSection').style.display = 'none';
-  document.querySelectorAll('#startGrid .t-btn').forEach(b => b.classList.remove('sel'));
-}
+function renderOutput() {
+  const hasSlots = state.slots.length > 0;
+  document.getElementById('output').hidden = !hasSlots;
+  document.getElementById('emptyHint').hidden = hasSlots;
+  if (!hasSlots) return;
 
-// ── 終了時間選択待ち状態にする ──
-function showEndPicker() {
-  document.getElementById('timeLabel').textContent = '終了時間';
-  document.getElementById('startSection').style.display = 'none';
-  document.getElementById('endSection').style.display = 'block';
-  document.querySelectorAll('#endGrid .t-btn').forEach(b => b.classList.remove('sel'));
-}
-
-// ── 開始時間クリック ──
-function onStartClick(t) {
-  if (editing === null) return;
-  slots[editing].start = t;
-  slots[editing].end   = null;
-  updatePreview();
-  document.querySelectorAll('#startGrid .t-btn').forEach(b => {
-    b.classList.toggle('sel', b.textContent === fmtTime(t));
-  });
-  showEndPicker();
-  saveState();
-}
-
-// ── 終了時間クリック ──
-function onEndClick(t) {
-  if (editing !== null) {
-    slots[editing].end = t;
-    editing = null;
-  }
-  showStartPicker();
-  renderCalendar();
-  updatePreview();
-  saveState();
-}
-
-// ── プレビュー更新 ──
-function updatePreview() {
-  const card = document.getElementById('previewCard');
-  if (slots.length === 0) {
-    card.classList.remove('visible');
-    document.getElementById('previewText').innerHTML =
-      '<span class="preview-placeholder">日付を選ぶと\nここに表示されます</span>';
-    return;
-  }
-
-  const sorted = [...slots].sort((a, b) => {
-    if (a.key !== b.key) return a.key > b.key ? 1 : -1;
-    if (!a.start) return -1;
-    if (!b.start) return 1;
-    return a.start > b.start ? 1 : -1;
+  const picker = document.getElementById('formatPicker');
+  picker.replaceChildren();
+  OutputFormats.FORMATS.forEach(fmt => {
+    const btn = el('button', 'format-option', fmt.label);
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', String(fmt.id === state.format));
+    if (fmt.id === state.format) btn.classList.add('is-active');
+    btn.addEventListener('click', () => update(s => { s.format = fmt.id; }));
+    picker.appendChild(btn);
   });
 
-  const lines = sorted.map(s => {
-    if (!s.start) return s.label;
-    if (!s.end)   return `${s.label}　${fmtTime(s.start)}〜`;
-    return `${s.label}　${fmtTime(s.start)}〜${fmtTime(s.end)}`;
-  });
+  document.getElementById('noteText').textContent =
+    OutputFormats.render(sortedSlots(), state.format);
 
-  document.getElementById('previewText').textContent =
-    '以下の日程でご都合いかがでしょうか。\n' + lines.join('\n');
-  card.classList.add('visible');
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.textContent = state.copied ? 'コピーしました！' : 'コピーする';
+  copyBtn.classList.toggle('is-done', state.copied);
 }
 
-// ── コピー ──
+// ── 操作 ──────────────────────────────────────────
+
+function addSlot(date) {
+  update(s => {
+    const slot = { id: nextId++, date, start: null, end: null };
+    s.slots.push(slot);
+    s.editingId = slot.id;
+  });
+}
+
+// 1つのグリッドで範囲選択: 1回目=開始、2回目=終了。
+// 開始より前（または同じ時刻）を押したら開始を選び直したとみなす。
+function pickTime(t) {
+  update(s => {
+    const slot = editingSlot();
+    if (!slot) return;
+    if (!slot.start || slot.end || toMinutes(t) <= toMinutes(slot.start)) {
+      slot.start = t;
+      slot.end = null;
+    } else {
+      slot.end = t;
+      s.editingId = null; // 範囲が決まったら編集終了
+    }
+  });
+}
+
+document.getElementById('noTimeBtn').addEventListener('click', () =>
+  update(s => {
+    const slot = editingSlot();
+    if (slot) { slot.start = null; slot.end = null; }
+    s.editingId = null;
+  }));
+
+document.getElementById('doneBtn').addEventListener('click', () =>
+  update(s => { s.editingId = null; }));
+
+document.getElementById('prevMonth').addEventListener('click', () =>
+  update(s => {
+    s.view.month--;
+    if (s.view.month < 0) { s.view.month = 11; s.view.year--; }
+  }));
+
+document.getElementById('nextMonth').addEventListener('click', () =>
+  update(s => {
+    s.view.month++;
+    if (s.view.month > 11) { s.view.month = 0; s.view.year++; }
+  }));
+
 document.getElementById('copyBtn').addEventListener('click', () => {
-  const text = document.getElementById('previewText').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = 'コピーしました！';
-    btn.classList.add('done');
-    setTimeout(() => { btn.textContent = 'コピーする'; btn.classList.remove('done'); }, 2500);
-  });
+  navigator.clipboard.writeText(OutputFormats.render(sortedSlots(), state.format))
+    .then(() => {
+      update(s => { s.copied = true; });
+      setTimeout(() => update(s => { s.copied = false; }), 2000);
+    });
 });
 
-// ── リセット ──
-document.getElementById('resetBtn').addEventListener('click', () => {
-  slots   = [];
-  editing = null;
-  document.getElementById('timePicker').classList.remove('visible');
-  document.getElementById('previewCard').classList.remove('visible');
-  document.getElementById('previewText').innerHTML =
-    '<span class="preview-placeholder">日付を選ぶと\nここに表示されます</span>';
-  document.getElementById('startSection').style.display = 'block';
-  document.getElementById('endSection').style.display = 'none';
-  document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('sel'));
-  renderCalendar();
-  saveState();
-});
+// ── 初期化 ──────────────────────────────────────────
 
-// ── 月ナビ ──
-document.getElementById('prevMonth').addEventListener('click', () => {
-  viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-  renderCalendar();
-  saveState();
-});
-document.getElementById('nextMonth').addEventListener('click', () => {
-  viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-  renderCalendar();
-  saveState();
-});
-
-// ── 初期化 ──
 (async () => {
-  await restoreState();
-  renderCalendar();
-  initTimeGrids();
-  updatePreview();
-  // 復元時に時間編集中だったら開始ピッカーを出す
-  if (editing !== null) {
-    if (slots[editing]?.start) showEndPicker();
-    else showStartPicker();
-    document.getElementById('timePicker').classList.add('visible');
-  }
+  await restore();
+  render();
 })();

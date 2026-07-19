@@ -7,41 +7,61 @@
 </head>
 <body>
 
-<h1>日程クリッパー</h1>
+<header class="brand">
+  <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <span class="brand-name">日程クリッパー</span>
+</header>
 
-<!-- カレンダー -->
-<div class="card">
-  <div class="cal-header">
-    <button class="cal-nav" id="prevMonth">‹</button>
-    <div class="cal-month" id="calMonth"></div>
-    <button class="cal-nav" id="nextMonth">›</button>
-  </div>
-  <div class="cal-grid" id="calGrid"></div>
-</div>
+<main>
+  <!-- カレンダー -->
+  <section class="calendar" aria-label="カレンダー">
+    <div class="cal-nav-row">
+      <button class="cal-nav" id="prevMonth" aria-label="前の月">‹</button>
+      <div class="cal-month" id="calMonth"></div>
+      <button class="cal-nav" id="nextMonth" aria-label="次の月">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </section>
 
-<!-- 時間ピッカー -->
-<div class="card time-picker" id="timePicker">
-  <div class="time-label" id="timeLabel"></div>
-  <div id="startSection">
-    <div class="time-grid" id="startGrid"></div>
-  </div>
-  <div id="endSection" style="display:none">
-    <div class="time-grid" id="endGrid"></div>
-  </div>
-</div>
+  <!-- 時間帯エディタ（候補の編集中のみ表示） -->
+  <section class="time-editor" id="timeEditor" hidden>
+    <div class="time-editor-head">
+      <span class="time-editor-title" id="timeEditorTitle"></span>
+      <span class="time-editor-hint" id="timeEditorHint"></span>
+    </div>
+    <div class="time-grid" id="timeGrid"></div>
+    <div class="time-editor-actions">
+      <button class="ghost-btn" id="noTimeBtn">時間指定しない</button>
+      <button class="ghost-btn primary" id="doneBtn">完了</button>
+    </div>
+  </section>
 
-<!-- プレビュー -->
-<div class="card preview-card" id="previewCard">
-  <div class="preview-text" id="previewText"><span class="preview-placeholder">日付を選ぶと
-ここに表示されます</span></div>
-  <button class="copy-btn" id="copyBtn">コピーする</button>
-  <button class="reset-btn" id="resetBtn">リセットする</button>
-</div>
+  <!-- 候補リスト -->
+  <section class="slot-list" id="slotList" aria-label="候補日時"></section>
 
-<footer>
-  © Ryota Kashiwagi
-</footer>
+  <!-- 出力 -->
+  <section class="output" id="output" hidden>
+    <div class="format-picker" id="formatPicker" role="radiogroup" aria-label="出力形式"></div>
+    <div class="note">
+      <svg class="note-clip" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <pre class="note-text" id="noteText"></pre>
+    </div>
+    <button class="copy-btn" id="copyBtn">コピーする</button>
+  </section>
 
+  <p class="empty-hint" id="emptyHint">カレンダーから日付を選ぶと、ここに提案文が入ります。</p>
+</main>
+
+<footer>© Ryota Kashiwagi</footer>
+
+<script src="holidays.js"></script>
+<script src="formats.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
