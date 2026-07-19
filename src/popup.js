@@ -2,6 +2,11 @@
 // 単一のstateオブジェクトとrender()による状態駆動アーキテクチャ。
 // イベント → 状態更新(update) → 全体再描画 の一方向フローで統一する。
 
+// サイドパネル表示（sidepanel.html経由）ならレイアウトをパネル幅に追従させる
+if (new URLSearchParams(location.search).get('view') === 'panel') {
+  document.documentElement.classList.add('in-panel');
+}
+
 // ── 状態 ──────────────────────────────────────────
 
 // サイドパネルは長時間開いたままになるため、「今日」は描画のたびに求める
