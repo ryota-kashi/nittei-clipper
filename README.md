@@ -20,6 +20,7 @@ Chrome拡張機能。
 - **祝日を計算で導出**: 静的データではなく祝日法ルール（固定祝日・ハッピーマンデー・
   春分/秋分の天文近似式・振替休日・国民の休日）から算出するため、何年先でも正しく動く
 - **状態駆動アーキテクチャ**: 単一のstateとrender()による一方向データフロー
+- **Googleカレンダー連携**: calendar.google.com を開いていると画面右下に起動ボタンを表示
 - ダークモード対応（OS設定に自動追従）、reduced-motion対応
 
 ## インストール
@@ -30,8 +31,10 @@ Chrome拡張機能。
 
 ## 構成
 
-- `manifest.json` … Manifest V3（権限: clipboardWrite / storage）
+- `manifest.json` … Manifest V3（権限: clipboardWrite / storage / calendar.google.com）
 - `popup.html` / `popup.css` / `popup.js` … ポップアップ本体（ビルド不要）
+- `background.js` … サービスワーカー（カレンダー上のボタンからポップアップを起動）
+- `content.js` / `content.css` … Googleカレンダー用の起動ボタン
 - `holidays.js` … 日本の祝日計算エンジン
 - `formats.js` … 出力形式の定義
 - `test/holidays.test.js` … 祝日エンジンの検証（`node test/holidays.test.js`）

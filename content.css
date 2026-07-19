@@ -1,0 +1,31 @@
+/* Googleカレンダー上のフローティングボタン */
+#nittei-clipper-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 84px; /* GCal右下のサポートボタンと重ならない位置 */
+  z-index: 2147483646;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: #0e7a6e;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .2), 0 6px 18px rgba(0, 0, 0, .15);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+#nittei-clipper-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .22), 0 10px 24px rgba(0, 0, 0, .18);
+}
+#nittei-clipper-fab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+#nittei-clipper-fab svg {
+  width: 22px;
+  height: 22px;
+}
