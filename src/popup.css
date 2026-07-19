@@ -14,6 +14,7 @@
   --on-accent: #ffffff;
   --sun: #c9524a;
   --sat: #4a63be;
+  --faint: #c2c2ba; /* 過去日など「選べない」が読める濃さ */
   --shadow: 0 1px 2px rgba(35, 38, 43, .05), 0 6px 20px rgba(35, 38, 43, .07);
 }
 
@@ -30,6 +31,7 @@
   --on-accent: #0d2420;
   --sun: #e8938b;
   --sat: #9ab0f2;
+  --faint: #4b5a78;
   --shadow: 0 1px 2px rgba(4, 8, 18, .4), 0 6px 20px rgba(4, 8, 18, .45);
 }
 
@@ -45,6 +47,7 @@
   --on-accent: #2a2008;
   --sun: #e2907b;
   --sat: #a3ace2;
+  --faint: #6b5e45;
   --shadow: 0 1px 2px rgba(10, 7, 2, .4), 0 6px 20px rgba(10, 7, 2, .45);
 }
 
@@ -61,6 +64,7 @@
     --on-accent: #0d2420;
     --sun: #e8938b;
     --sat: #9ab0f2;
+    --faint: #4b5a78;
     --shadow: 0 1px 2px rgba(4, 8, 18, .4), 0 6px 20px rgba(4, 8, 18, .45);
   }
 }
@@ -179,7 +183,7 @@ main { display: flex; flex-direction: column; gap: 14px; }
   transition: background .12s;
 }
 .cal-cell.is-blank { cursor: default; }
-.cal-cell.is-past { color: var(--line); cursor: default; }
+.cal-cell.is-past { color: var(--faint); cursor: default; }
 .cal-cell.is-sun { color: var(--sun); }
 .cal-cell.is-sat { color: var(--sat); }
 .cal-cell:not(.is-blank):not(.is-past):hover { background: var(--accent-soft); }
