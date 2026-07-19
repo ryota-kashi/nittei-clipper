@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ストア用スクリーンショット生成</title>
+<!-- 使い方: リポジトリルートをHTTP配信し、
+     /scripts/store-shots.html?scene=1〜4|tile を1280x800(tileは440x280)で開いてキャプチャする -->
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 800px; overflow: hidden; }
+  body { font-family: 'Hiragino Sans', sans-serif; background: #f6f4ec; color: #23262b; position: relative; }
+  body.tile { width: 440px; height: 280px; }
+
+  .watermark { position: absolute; right: -140px; bottom: -140px; width: 560px; height: 560px;
+               color: #0e7a6e; opacity: .07; transform: rotate(12deg); z-index: 0; }
+
+  .scene { position: relative; width: 100%; height: 100%; display: flex; align-items: center; z-index: 1; }
+  .copy { flex: 1; padding: 0 60px 0 90px; }
+  .brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+  .brand-row svg { width: 26px; height: 26px; color: #0e7a6e; }
+  .brand-row span { font-weight: 800; letter-spacing: .14em; font-size: 17px; }
+  h1 { font-size: 46px; font-weight: 800; line-height: 1.45; letter-spacing: .03em; margin-bottom: 22px; }
+  h1 em { font-style: normal; color: #0e7a6e; }
+  p.sub { font-size: 19px; line-height: 2; color: #6d7278; max-width: 560px; }
+
+  .device { width: 400px; margin-right: 96px; border-radius: 20px; background: #fff; overflow: hidden;
+            border: 1px solid #e3e1d8;
+            box-shadow: 0 24px 60px rgba(35, 38, 43, .18), 0 4px 14px rgba(35, 38, 43, .08); }
+  .device iframe { width: 398px; height: 660px; border: none; display: block; }
+
+  .scene.duo { flex-direction: column; justify-content: center; gap: 34px; }
+  .duo .copy { padding: 0; text-align: center; flex: none; }
+  .duo h1 { margin-bottom: 12px; font-size: 40px; }
+  .duo p.sub { max-width: none; }
+  .duo .devices { display: flex; gap: 48px; }
+  .duo .device { margin: 0; }
+  .duo .device iframe { height: 520px; }
+
+  .tile-scene { width: 100%; height: 100%; background: #0e7a6e; color: #fff;
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  .tile-scene svg { width: 56px; height: 56px; }
+  .tile-scene .name { font-size: 26px; font-weight: 800; letter-spacing: .16em; }
+  .tile-scene .tag { font-size: 13px; opacity: .85; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+<script>
+const CLIP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+
+// 候補追加などの操作をiframe内のUIに対して実行する
+function drive(frame, steps) {
+  const d = frame.contentDocument;
+  const q = (sel, text) => [...d.querySelectorAll(sel)].find(b => b.textContent === text);
+  for (const s of steps) {
+    if (s.cell) q('.cal-cell', s.cell).click();
+    if (s.time) q('.t-cell', s.time).click();
+    if (s.btn) d.getElementById(s.btn).click();
+    if (s.format) q('.format-option', s.format).click();
+    if (s.theme !== undefined) d.querySelectorAll('.theme-swatch')[s.theme].click();
+  }
+}
+
+const SLOTS = [
+  { cell: '22' }, { time: '14:00' }, { time: '15:00' },
+  { cell: '24' }, { btn: 'noTimeBtn' },
+];
+
+const SCENES = {
+  1: {
+    h1: '日程調整の候補日を、<br>サッと作って<em>コピー</em>。',
+    sub: 'カレンダーをタップするだけで、そのまま貼り付けられる候補リストのできあがり。祝日も自動で色分けされます。',
+    steps: SLOTS,
+  },
+  2: {
+    h1: '時間帯は、<em>なぞる</em>だけ。',
+    sub: '1タップ目が開始時間、2タップ目が終了時間。時間を決めない「終日」の候補もOK。',
+    steps: [{ cell: '22' }, { time: '14:00' }],
+  },
+  3: {
+    h1: '出力形式は、<em>3種類</em>。',
+    sub: '標準・箇条書き・English。切り替えた好みは自動で保存され、次回もそのまま。',
+    steps: [...SLOTS, { format: '箇条書き' }],
+  },
+};
+
+const params = new URLSearchParams(location.search);
+const scene = params.get('scene') ?? '1';
+
+function frameHTML() {
+  return '<div class="device"><iframe src="/src/popup.html"></iframe></div>';
+}
+
+if (scene === 'tile') {
+  document.body.className = 'tile';
+  document.body.innerHTML =
+    `<div class="tile-scene">${CLIP}<div class="name">日程クリッパー</div>` +
+    `<div class="tag">日程調整の候補日を、サッと作ってコピー</div></div>`;
+  window.__ready = true;
+} else if (scene === '4') {
+  document.body.innerHTML =
+    `<svg class="watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>` +
+    `<div class="scene duo"><div class="copy">` +
+    `<h1>気分で選べる、<em>3つのテーマ</em>。</h1>` +
+    `<p class="sub">紙白・藍染め・セピア。OSのダークモードに合わせた自動切替も。</p>` +
+    `</div><div class="devices">${frameHTML()}${frameHTML()}</div></div>`;
+  const frames = document.querySelectorAll('iframe');
+  let loaded = 0;
+  frames.forEach((f, i) => f.addEventListener('load', () => {
+    drive(f, [...SLOTS, { theme: i === 0 ? 2 : 3 }]); // 藍染め / セピア
+    if (++loaded === frames.length) window.__ready = true;
+  }));
+} else {
+  const s = SCENES[scene];
+  document.body.innerHTML =
+    `<svg class="watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>` +
+    `<div class="scene"><div class="copy">` +
+    `<div class="brand-row">${CLIP}<span>日程クリッパー</span></div>` +
+    `<h1>${s.h1}</h1><p class="sub">${s.sub}</p>` +
+    `</div>${frameHTML()}</div>`;
+  document.querySelector('iframe').addEventListener('load', (e) => {
+    drive(e.target, s.steps);
+    window.__ready = true;
+  });
+}
+</script>
+</body>
+</html>
