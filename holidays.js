@@ -66,11 +66,12 @@ const JPHolidays = (() => {
     // 国民の休日: 前日と翌日が祝日に挟まれた平日（日曜・振替休日を除く）
     for (const [md] of Object.entries(base)) {
       const [m, d] = md.split('-').map(Number);
-      const mid = new Date(year, m - 1, d + 1);
+      const mid = new Date(year, m - 1, d + 1);   // 祝日の翌日
+      const next = new Date(year, m - 1, d + 2);  // 祝日の翌々日（月またぎもDateに任せる）
       const midMd = `${mid.getMonth() + 1}-${mid.getDate()}`;
-      const next = `${mid.getMonth() + 1}-${mid.getDate() + 1}`;
+      const nextMd = `${next.getMonth() + 1}-${next.getDate()}`;
       const midKey = key(mid.getMonth() + 1, mid.getDate());
-      if (!base[midMd] && base[next] && mid.getDay() !== 0 && !result.has(midKey)) {
+      if (!base[midMd] && base[nextMd] && mid.getDay() !== 0 && !result.has(midKey)) {
         result.set(midKey, '国民の休日');
       }
     }

@@ -4,11 +4,15 @@
 
 // ── 状態 ──────────────────────────────────────────
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+// サイドパネルは長時間開いたままになるため、「今日」は描画のたびに求める
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 const state = {
-  view: { year: today.getFullYear(), month: today.getMonth() }, // 表示中の月
+  view: { year: startOfToday().getFullYear(), month: startOfToday().getMonth() }, // 表示中の月
   slots: [],        // { id, date: 'YYYY-MM-DD', start: 'H:MM'|null, end: 'H:MM'|null }
   editingId: null,  // 時間帯エディタを開いている候補のid
   format: 'standard',
@@ -44,13 +48,33 @@ async function restore() {
     storage.session?.get('work') ?? {},
     storage.sync?.get('format') ?? {},
   ]);
-  if (work) {
-    state.slots = work.slots ?? [];
-    state.editingId = work.editingId ?? null;
-    state.view = work.view ?? state.view;
-    nextId = work.nextId ?? state.slots.length + 1;
-  }
+  if (work) applyWork(work);
   if (format) state.format = format;
+}
+
+// 保存されていた作業状態をstateへ反映する（persistはしない）
+function applyWork(work) {
+  state.slots = work.slots ?? [];
+  state.editingId = work.editingId ?? null;
+  state.view = work.view ?? state.view;
+  // nextIdが欠けていても既存IDと衝突しないよう最大値から採番する
+  nextId = work.nextId ?? Math.max(0, ...state.slots.map(s => s.id)) + 1;
+}
+
+// ポップアップとサイドパネルを同時に開いた場合に互いの変更を反映する
+if (storage) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'session' && changes.work?.newValue) {
+      if (JSON.stringify(changes.work.newValue.slots) === JSON.stringify(state.slots) &&
+          changes.work.newValue.editingId === state.editingId) return; // 自分の書き込み
+      applyWork(changes.work.newValue);
+      render();
+    }
+    if (area === 'sync' && changes.format && changes.format.newValue !== state.format) {
+      state.format = changes.format.newValue;
+      render();
+    }
+  });
 }
 
 // ── ユーティリティ ──────────────────────────────────
@@ -117,6 +141,7 @@ function renderCalendar() {
 
   const selectedDates = new Set(state.slots.map(s => s.date));
   const editing = editingSlot();
+  const today = startOfToday();
 
   for (let d = 1; d <= lastDate; d++) {
     const date = new Date(year, month, d);
@@ -130,6 +155,8 @@ function renderCalendar() {
       else if (date.getDay() === 6) btn.classList.add('is-sat');
       btn.addEventListener('click', () => addSlot(key));
     }
+    // titleだけだと読み上げ名が祝日名で上書きされるため、日付を含めたラベルを付ける
+    btn.setAttribute('aria-label', `${d}日${holiday ? `（${holiday}）` : ''}`);
     if (holiday) btn.title = holiday;
     if (date.getTime() === today.getTime()) btn.classList.add('is-today');
     if (selectedDates.has(key)) btn.classList.add('has-slot');
@@ -270,6 +297,11 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     .then(() => {
       update(s => { s.copied = true; });
       setTimeout(() => update(s => { s.copied = false; }), 2000);
+    })
+    .catch(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'コピーできませんでした';
+      setTimeout(() => render(), 2000);
     });
 });
 

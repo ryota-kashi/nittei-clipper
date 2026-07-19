@@ -47,8 +47,10 @@ const OutputFormats = (() => {
       label: 'English',
       line(slot) {
         const { m, d, dow } = parts(slot);
-        const time = timeRange(slot, '–');
-        return `${DOW_EN[dow]}, ${MONTH_EN[m - 1]} ${d}` + (time ? `, ${time}` : '');
+        const base = `${DOW_EN[dow]}, ${MONTH_EN[m - 1]} ${d}`;
+        if (!slot.start) return base;
+        if (!slot.end) return `${base}, from ${hm(slot.start)}`; // 「10:00–」より自然な表記に
+        return `${base}, ${hm(slot.start)}–${hm(slot.end)}`;
       },
     },
   ];
