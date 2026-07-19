@@ -1,17 +1,20 @@
 // バックグラウンド（サービスワーカー）
-// Googleカレンダー上のボタンからの要求でポップアップを開く。
+// Googleカレンダー上のボタンからの要求でサイドパネルを開く。
 
 chrome.runtime.onMessage.addListener((message, sender) => {
-  if (message?.type !== 'open-popup') return;
+  if (message?.type !== 'open-panel') return;
 
-  // Chrome 127以降はツールバーのポップアップを直接開ける。
-  // 失敗した場合（旧バージョン等）は小窓でポップアップを開くフォールバック。
-  chrome.action.openPopup({ windowId: sender.tab?.windowId }).catch(() => {
-    chrome.windows.create({
-      url: chrome.runtime.getURL('popup.html'),
-      type: 'popup',
-      width: 412,
-      height: 680,
+  // サイドパネルならカレンダーの予定と重ならずに並べて使える。
+  // ユーザージェスチャが有効なうちに同期的に呼ぶこと（awaitを挟むと失効する）。
+  chrome.sidePanel.open({ windowId: sender.tab.windowId }).catch(() => {
+    // サイドパネル非対応環境ではツールバーのポップアップ → 小窓の順でフォールバック
+    chrome.action.openPopup({ windowId: sender.tab?.windowId }).catch(() => {
+      chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type: 'popup',
+        width: 412,
+        height: 680,
+      });
     });
   });
 });

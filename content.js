@@ -30,7 +30,7 @@
   btn.appendChild(svg);
 
   btn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'open-popup' });
+    chrome.runtime.sendMessage({ type: 'open-panel' });
   });
 
   document.documentElement.appendChild(btn);
