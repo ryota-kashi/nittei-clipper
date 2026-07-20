@@ -61,26 +61,31 @@
 ### 単一用途の説明（Single purpose description）
 
 ```
-日程調整用の候補日時リストを作成し、クリップボードにコピーする。
+Create a list of proposed meeting dates/times and copy it to the clipboard for scheduling coordination.
+（日程調整用の候補日時リストを作成し、クリップボードにコピーする。）
 ```
 
-### 権限の使用理由（Permission justifications）
+### 権限の使用理由（Permission justifications / 英語先行+日本語併記）
 
 - **clipboardWrite**:
   ```
-  ユーザーが「コピーする」ボタンを押したとき、作成した候補日時のテキストをクリップボードに書き込むために使用します。
+  Used only when the user clicks the "Copy" button, to write the generated list of proposed dates/times to the clipboard. The extension never reads the clipboard.
+  （ユーザーが「コピーする」を押したときに、作成した候補日時のテキストをクリップボードへ書き込むためだけに使用します。読み取りは行いません。）
   ```
 - **storage**:
   ```
-  選択中の候補（storage.session）と出力形式の設定（storage.sync）を保存するために使用します。外部への送信はありません。
+  Used to keep the user's own selections: currently selected date/time candidates (storage.session) and preferences for output format and theme (storage.sync). No data ever leaves the device; nothing is transmitted externally.
+  （選択中の候補日時と、出力形式・テーマの設定を保存するために使用します。外部送信は一切ありません。）
   ```
 - **sidePanel**:
   ```
-  Googleカレンダー上のボタンから、カレンダーの予定と重ならないサイドパネルで本拡張機能を表示するために使用します。
+  Used to display the extension's UI (the date-candidate builder) in the browser side panel, opened from the toolbar icon or from a button on Google Calendar, so it does not overlap the user's calendar or email content.
+  （本拡張機能のUIをサイドパネルとして表示するために使用します。カレンダーやメール画面と重ならずに候補を選べるようにするためです。）
   ```
 - **ホスト権限（calendar.google.com）**:
   ```
-  Googleカレンダーの画面右下に本拡張機能を起動するボタンを表示するために使用します。カレンダーの内容の読み取り・変更は行いません。
+  Limited to calendar.google.com only, to display a small launcher button at the bottom-right of Google Calendar. The extension never reads or modifies any calendar events or page content.
+  （calendar.google.com のみを対象に、起動ボタンを表示するために使用します。予定・内容の読み取りや変更は一切行いません。）
   ```
 
 ### データ使用の開示（Data usage）
