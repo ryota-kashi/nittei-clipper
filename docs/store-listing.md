@@ -11,7 +11,7 @@
 ## 簡潔な説明（132文字以内 / 検索結果・一覧に表示）
 
 ```
-カレンダーで日付をタップ、時間帯をなぞるだけ。日程調整の候補日リストを数クリックで作ってワンクリックでコピー。祝日対応・テーマ切替・サイドパネル対応。
+カレンダーで日付をタップ、時間帯はタップ2回。日程調整の候補日リストを数クリックで作ってワンクリックでコピー。祝日対応・テーマ切替・サイドパネル対応。
 ```
 
 ## 詳細説明
@@ -109,5 +109,5 @@ Create a list of proposed meeting dates/times and copy it to the clipboard for s
 - Name: `Nittei Clipper — Quick scheduling suggestions`
 - Short description:
   ```
-  Tap dates, drag a time range, copy a ready-to-paste list of meeting time options. Japanese holidays built in. Dark mode ready.
+  Tap dates, pick a time range with two taps, and copy a ready-to-paste list of meeting time options. Japanese holidays built in. Dark mode ready.
   ```
