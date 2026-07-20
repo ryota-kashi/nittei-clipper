@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>note記事用画像の生成</title>
+<!-- 使い方: リポジトリルートをHTTP配信し、
+     /scripts/note-images.html?scene=eyecatch(1280x670) | gcal(1280x800) をキャプチャする -->
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { font-family: 'Hiragino Sans', sans-serif; background: #f6f4ec; color: #23262b;
+         position: relative; overflow: hidden; }
+  body.eyecatch { width: 1280px; height: 670px; }
+  body.gcal { width: 1280px; height: 800px; }
+
+  /* ── アイキャッチ ── */
+  .ec { width: 100%; height: 100%; display: flex; align-items: center; position: relative; }
+  .ec .watermark { position: absolute; right: -120px; bottom: -120px; width: 480px; height: 480px;
+                   color: #0e7a6e; opacity: .07; transform: rotate(12deg); }
+  .ec .copy { flex: 1; padding-left: 96px; position: relative; z-index: 1; }
+  .ec .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+  .ec .brand-row svg { width: 34px; height: 34px; color: #0e7a6e; }
+  .ec .brand-row span { font-weight: 800; letter-spacing: .16em; font-size: 21px; }
+  .ec h1 { font-size: 52px; font-weight: 800; line-height: 1.5; letter-spacing: .03em; margin-bottom: 20px; }
+  .ec h1 em { font-style: normal; color: #0e7a6e; }
+  .ec .tag { display: inline-block; font-size: 17px; color: #0e7a6e; border: 1.5px solid #0e7a6e;
+             border-radius: 999px; padding: 7px 20px; letter-spacing: .08em; font-weight: 700; }
+  .ec .device { width: 386px; margin-right: 90px; border-radius: 18px; background: #fff; overflow: hidden;
+                border: 1px solid #e3e1d8; position: relative; z-index: 1;
+                box-shadow: 0 24px 60px rgba(35, 38, 43, .18); }
+  .ec .device iframe { width: 384px; height: 560px; border: none; display: block; }
+
+  /* ── Googleカレンダー連携の図解 ── */
+  .g { width: 100%; height: 100%; display: flex; }
+  .g .cal { flex: 1; background: #fff; border-right: 1px solid #e0ded6; position: relative;
+            display: flex; flex-direction: column; }
+  .g .cal-head { height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 24px;
+                 border-bottom: 1px solid #eceae2; color: #5f6368; font-size: 15px; }
+  .g .cal-head .logo { width: 30px; height: 30px; border-radius: 7px; background: #e8f0fe;
+                       display: flex; align-items: center; justify-content: center;
+                       color: #1a73e8; font-weight: 700; font-size: 15px; }
+  .g .cols { flex: 1; display: flex; }
+  .g .col { flex: 1; border-right: 1px solid #f0eee6; position: relative; padding: 44px 6px 0; }
+  .g .col .dow { position: absolute; top: 10px; left: 0; right: 0; text-align: center;
+                 font-size: 12px; color: #9aa0a6; }
+  .g .ev { border-radius: 6px; padding: 6px 8px; font-size: 11px; margin-bottom: 6px; color: #fff;
+           opacity: .85; }
+  .g .fab { position: absolute; right: 22px; bottom: 26px; width: 52px; height: 52px; border-radius: 999px;
+            background: #0e7a6e; color: #fff; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+  .g .fab svg { width: 26px; height: 26px; }
+  .g .panel { width: 430px; background: #f6f4ec; display: flex; flex-direction: column; }
+  .g .panel-head { height: 40px; display: flex; align-items: center; padding: 0 16px;
+                   font-size: 12.5px; color: #6d7278; background: #eceae0;
+                   border-bottom: 1px solid #dfddd3; justify-content: space-between; }
+  .g .panel iframe { flex: 1; border: none; width: 100%; }
+
+  .callout { position: absolute; z-index: 5; background: #23262b; color: #fff; font-size: 15px;
+             font-weight: 700; padding: 10px 18px; border-radius: 10px; letter-spacing: .05em;
+             box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+  .callout::after { content: ''; position: absolute; border: 8px solid transparent; }
+  .callout.c1 { right: 470px; bottom: 100px; }
+  .callout.c1::after { top: 100%; right: 24px; border-top-color: #23262b; }
+  .callout.c2 { right: 120px; top: 60px; }
+  .callout.c2::after { top: 100%; left: 40px; border-top-color: #23262b; }
+</style>
+</head>
+<body>
+<script>
+const CLIP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+
+function drive(frame, steps) {
+  const d = frame.contentDocument;
+  const q = (sel, text) => [...d.querySelectorAll(sel)].find(b => b.textContent === text);
+  for (const s of steps) {
+    if (s.cell) q('.cal-cell', s.cell).click();
+    if (s.time) q('.t-cell', s.time).click();
+    if (s.btn) d.getElementById(s.btn).click();
+  }
+}
+const SLOTS = [
+  { cell: '22' }, { time: '14:00' }, { time: '15:00' },
+  { cell: '24' }, { btn: 'noTimeBtn' },
+];
+
+const scene = new URLSearchParams(location.search).get('scene') ?? 'eyecatch';
+
+if (scene === 'eyecatch') {
+  document.body.className = 'eyecatch';
+  document.body.innerHTML =
+    `<div class="ec">` +
+    `<svg class="watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>` +
+    `<div class="copy"><div class="brand-row">${CLIP}<span>日程クリッパー</span></div>` +
+    `<h1>日程調整の候補日を、<br>サッと作って<em>コピー</em>。</h1>` +
+    `<span class="tag">Chrome拡張 つくりました</span></div>` +
+    `<div class="device"><iframe src="/src/popup.html"></iframe></div></div>`;
+  document.querySelector('iframe').addEventListener('load', (e) => {
+    drive(e.target, SLOTS);
+    window.__ready = true;
+  });
+} else if (scene === 'gcal') {
+  document.body.className = 'gcal';
+  const EVENTS = [
+    ['#7986cb', 36, 90], ['#33b679', 150, 60], ['#7986cb', 230, 120],
+  ];
+  const cols = ['月', '火', '水', '木', '金'].map((d, i) => {
+    const blocks = [
+      `<div class="ev" style="background:#7986cb;margin-top:${20 + i * 26}px;height:${52 + (i % 3) * 22}px"></div>`,
+      `<div class="ev" style="background:${i % 2 ? '#33b679' : '#8e24aa'};margin-top:${30 + (i * 17) % 60}px;height:${40 + (i % 2) * 30}px"></div>`,
+      `<div class="ev" style="background:#e67c73;margin-top:${(i * 23) % 50}px;height:36px"></div>`,
+    ].join('');
+    return `<div class="col"><div class="dow">${d}</div>${blocks}</div>`;
+  }).join('');
+  document.body.innerHTML =
+    `<div class="g">` +
+    `<div class="cal"><div class="cal-head"><div class="logo">31</div>カレンダー　2026年7月</div>` +
+    `<div class="cols">${cols}</div>` +
+    `<div class="fab">${CLIP}</div></div>` +
+    `<div class="panel"><div class="panel-head"><span>日程クリッパー</span><span>✕</span></div>` +
+    `<iframe src="/src/popup.html?view=panel"></iframe></div>` +
+    `<div class="callout c1">① 右下のボタンをクリック</div>` +
+    `<div class="callout c2">② 予定と重ならないサイドパネルで開く</div>` +
+    `</div>`;
+  document.querySelector('iframe').addEventListener('load', (e) => {
+    drive(e.target, SLOTS);
+    window.__ready = true;
+  });
+}
+</script>
+</body>
+</html>
