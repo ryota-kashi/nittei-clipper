@@ -10,9 +10,9 @@
   .grid { display: flex; height: 960px; }
   .day-col { flex: 1; border-right: 1px solid #eee; background: #fff; position: relative; }
   .day-col::after { content: attr(data-label); position: absolute; top: 4px; left: 8px; color: #999; font-size: 12px; }
-  .month-cell { width: 140px; height: 120px; background: #fffbe6; border: 1px solid #eee; }
+  .month-cell { width: 140px; height: 120px; background: #fffbe6; border: 1px solid #eee; position: relative; }
   #log { position: fixed; left: 12px; bottom: 12px; background: #fff; border: 1px solid #ccc;
-         padding: 8px 12px; font-size: 12px; max-width: 400px; }
+         padding: 8px 12px; font-size: 12px; max-width: 420px; white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -27,12 +27,20 @@
 </div>
 <div id="log">log</div>
 <script>
-  // chrome APIスタブ: 送信メッセージを記録する
+  // chrome APIスタブ: メッセージ記録 + storage.session（候補1件入り）
   window.__messages = [];
-  window.chrome = { runtime: { sendMessage: (m) => {
-    window.__messages.push(m);
-    document.getElementById('log').textContent = JSON.stringify(window.__messages, null, 1);
-  } } };
+  window.__storageListeners = [];
+  window.__work = { slots: [{ id: 1, date: '2026-07-22', start: '10:00', end: '11:30' }] };
+  window.chrome = {
+    runtime: { sendMessage: (m) => {
+      window.__messages.push(m);
+      document.getElementById('log').textContent = JSON.stringify(window.__messages, null, 1);
+    } },
+    storage: {
+      session: { get: async () => ({ work: window.__work }) },
+      onChanged: { addListener: (fn) => window.__storageListeners.push(fn) },
+    },
+  };
   // GCal側の予定作成ハンドラの代役（抑止されるべき）
   window.__gcalClicks = 0;
   document.querySelectorAll('.day-col').forEach(c =>

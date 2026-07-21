@@ -351,6 +351,19 @@ document.getElementById('copyBtn').addEventListener('click', () => {
 
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((message) => {
+    // ドラッグでの範囲取り込み: 開始・終了が揃った候補をそのまま追加
+    if (message?.type === 'gcal-pick-range') {
+      update(s => {
+        s.slots.push({
+          id: nextId++,
+          date: message.date,
+          start: `${Math.floor(message.startMinutes / 60)}:${String(message.startMinutes % 60).padStart(2, '0')}`,
+          end: `${Math.floor(message.endMinutes / 60)}:${String(message.endMinutes % 60).padStart(2, '0')}`,
+        });
+        s.editingId = null;
+      });
+      return;
+    }
     if (message?.type !== 'gcal-pick') return;
     const t = message.minutes != null
       ? `${Math.floor(message.minutes / 60)}:${String(message.minutes % 60).padStart(2, '0')}`

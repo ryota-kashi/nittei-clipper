@@ -4,6 +4,11 @@
 // アイコンクリックでサイドパネルを開く（Chrome 114+）
 chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
+// content scriptが候補を読んでカレンダー上に色を重ねられるよう、
+// storage.sessionへのアクセスを開放する（自拡張のコンテキストのみ）
+chrome.storage.session?.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
+  .catch(() => {});
+
 // サイドパネル非対応の環境ではアイコンクリック時に小窓で開く
 // （setPanelBehaviorが効いている場合、onClickedは発火しない）
 chrome.action.onClicked.addListener(() => {
