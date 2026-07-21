@@ -345,6 +345,36 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     });
 });
 
+// ── Googleカレンダーからの取り込み ──────────────────
+// content scriptが送ってくる {date, minutes} を候補に反映する。
+// 挙動はパネル内の時間グリッドと同じ: 1回目=開始、同じ日の2回目=終了。
+
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type !== 'gcal-pick') return;
+    const t = message.minutes != null
+      ? `${Math.floor(message.minutes / 60)}:${String(message.minutes % 60).padStart(2, '0')}`
+      : null;
+    update(s => {
+      const editing = editingSlot();
+      if (editing && editing.date === message.date && t) {
+        // パネルのpickTimeと同じ範囲選択セマンティクス
+        if (!editing.start || editing.end || toMinutes(t) <= toMinutes(editing.start)) {
+          editing.start = t;
+          editing.end = null;
+        } else {
+          editing.end = t;
+          s.editingId = null;
+        }
+      } else {
+        const slot = { id: nextId++, date: message.date, start: t, end: null };
+        s.slots.push(slot);
+        s.editingId = t ? slot.id : null; // 日付のみの取り込みはその場で確定
+      }
+    });
+  });
+}
+
 // ── 初期化 ──────────────────────────────────────────
 
 (async () => {

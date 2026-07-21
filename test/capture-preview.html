@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>取り込みモードプレビュー（content script確認用）</title>
+<link rel="stylesheet" href="../src/content.css">
+<style>
+  body { font-family: sans-serif; background: #f8f9fa; margin: 0; }
+  header { padding: 12px 20px; border-bottom: 1px solid #ddd; }
+  .grid { display: flex; height: 960px; }
+  .day-col { flex: 1; border-right: 1px solid #eee; background: #fff; position: relative; }
+  .day-col::after { content: attr(data-label); position: absolute; top: 4px; left: 8px; color: #999; font-size: 12px; }
+  .month-cell { width: 140px; height: 120px; background: #fffbe6; border: 1px solid #eee; }
+  #log { position: fixed; left: 12px; bottom: 12px; background: #fff; border: 1px solid #ccc;
+         padding: 8px 12px; font-size: 12px; max-width: 400px; }
+</style>
+</head>
+<body>
+<header>Googleカレンダー想定のダミーページ（週表示の列 + 月表示セル）</header>
+<div role="main">
+  <div class="grid">
+    <!-- 2026-07-22 (datekey 28918), 2026-07-23 (28919) -->
+    <div class="day-col" data-datekey="28918" data-label="7/22"></div>
+    <div class="day-col" data-datekey="28919" data-label="7/23"></div>
+  </div>
+  <div class="month-cell" data-datekey="28920">月表示セル 7/24</div>
+</div>
+<div id="log">log</div>
+<script>
+  // chrome APIスタブ: 送信メッセージを記録する
+  window.__messages = [];
+  window.chrome = { runtime: { sendMessage: (m) => {
+    window.__messages.push(m);
+    document.getElementById('log').textContent = JSON.stringify(window.__messages, null, 1);
+  } } };
+  // GCal側の予定作成ハンドラの代役（抑止されるべき）
+  window.__gcalClicks = 0;
+  document.querySelectorAll('.day-col').forEach(c =>
+    c.addEventListener('mousedown', () => { window.__gcalClicks++; }));
+</script>
+<script src="../src/content.js"></script>
+</body>
+</html>
