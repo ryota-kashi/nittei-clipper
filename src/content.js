@@ -55,11 +55,11 @@
   const toggle = document.createElement('button');
   toggle.id = TOGGLE_ID;
   toggle.type = 'button';
-  toggle.title = '予定から取り込み: OFF（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）';
+  toggle.title = 'クリップ: OFF（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）';
   toggle.setAttribute('aria-pressed', 'false');
   const toggleLabel = document.createElement('span');
   toggleLabel.className = 'nc-capture-label';
-  toggleLabel.textContent = '予定から取り込み';
+  toggleLabel.textContent = 'クリップ';
   toggle.append(icon(TARGET_PATHS), toggleLabel);
   toggle.addEventListener('click', () => setCapturing(!capturing));
 
@@ -69,8 +69,8 @@
     removeGhost();
     toggle.classList.toggle('is-on', on);
     toggle.setAttribute('aria-pressed', String(on));
-    toggleLabel.textContent = on ? '取り込み中' : '予定から取り込み';
-    toggle.title = `予定から取り込み: ${on ? 'ON' : 'OFF'}（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）`;
+    toggleLabel.textContent = on ? 'クリップ中' : 'クリップ';
+    toggle.title = `クリップ: ${on ? 'ON' : 'OFF'}（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）`;
     document.documentElement.classList.toggle('nittei-clipper-capturing', on);
     if (on) {
       dismissHint();
