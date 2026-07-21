@@ -30,14 +30,16 @@
   height: 22px;
 }
 
-/* 予定から取り込みトグル（アイコンのみ） */
+/* 予定から取り込みトグル
+   普段はアイコンのみ、ホバーとON中は横に伸びてラベルを表示する */
 #nittei-clipper-capture {
   position: fixed;
   right: 24px;
   bottom: 138px;
   z-index: 2147483646;
-  width: 36px;
   height: 36px;
+  max-width: 36px;
+  padding: 0 8px;
   border: 1.5px solid #0e7a6e;
   border-radius: 999px;
   background: #fff;
@@ -45,17 +47,80 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 7px;
+  overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
-  transition: background .15s, color .15s, transform .15s;
+  transition: max-width .22s ease, background .15s, color .15s, transform .15s;
 }
 #nittei-clipper-capture:hover { transform: translateY(-2px); }
-#nittei-clipper-capture svg { width: 18px; height: 18px; }
+#nittei-clipper-capture svg { width: 18px; height: 18px; flex-shrink: 0; }
+#nittei-clipper-capture:hover,
+#nittei-clipper-capture.is-on { max-width: 220px; }
+.nc-capture-label {
+  font-family: 'Hiragino Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .18s ease .06s;
+}
+#nittei-clipper-capture:hover .nc-capture-label,
+#nittei-clipper-capture.is-on .nc-capture-label { opacity: 1; }
 #nittei-clipper-capture.is-on {
   background: #0e7a6e;
   color: #fff;
   box-shadow: 0 0 0 4px rgba(14, 122, 110, .25), 0 2px 6px rgba(0, 0, 0, .15);
 }
+@keyframes nc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+#nittei-clipper-capture.is-on .nc-capture-label::before {
+  content: '●';
+  font-size: 8px;
+  margin-right: 5px;
+  vertical-align: 1.5px;
+  animation: nc-pulse 1.4s ease infinite;
+}
+
+/* 初回のみの説明吹き出し */
+#nittei-clipper-hint {
+  position: fixed;
+  right: 70px;
+  bottom: 136px;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  padding: 11px 12px 11px 16px;
+  border-radius: 12px;
+  background: #23262b;
+  color: #fff;
+  font-family: 'Hiragino Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+#nittei-clipper-hint::after {
+  content: '';
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 7px solid transparent;
+  border-right: none;
+  border-left-color: #23262b;
+}
+#nittei-clipper-hint button {
+  border: none;
+  background: none;
+  color: #9aa0a6;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+#nittei-clipper-hint button:hover { color: #fff; }
 
 /* 取り込んだ候補のハイライトとドラッグ中のゴースト */
 .nittei-clipper-mark,

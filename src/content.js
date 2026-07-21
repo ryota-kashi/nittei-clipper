@@ -47,16 +47,20 @@
     chrome.runtime.sendMessage({ type: 'open-panel' });
   });
 
-  // ── 取り込みモードのトグル（アイコンのみ） ──
+  // ── 取り込みモードのトグル ──
+  // 普段はアイコンのみ。ホバーで横に伸びてラベルを表示し、ON中は伸びたまま
+  // 「取り込み中」を示す。初回のみ説明の吹き出しを出す。
   let capturing = false;
 
   const toggle = document.createElement('button');
   toggle.id = TOGGLE_ID;
   toggle.type = 'button';
   toggle.title = '予定から取り込み: OFF（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）';
-  toggle.setAttribute('aria-label', '予定から取り込み');
   toggle.setAttribute('aria-pressed', 'false');
-  toggle.appendChild(icon(TARGET_PATHS));
+  const toggleLabel = document.createElement('span');
+  toggleLabel.className = 'nc-capture-label';
+  toggleLabel.textContent = '予定から取り込み';
+  toggle.append(icon(TARGET_PATHS), toggleLabel);
   toggle.addEventListener('click', () => setCapturing(!capturing));
 
   function setCapturing(on) {
@@ -65,14 +69,41 @@
     removeGhost();
     toggle.classList.toggle('is-on', on);
     toggle.setAttribute('aria-pressed', String(on));
+    toggleLabel.textContent = on ? '取り込み中' : '予定から取り込み';
     toggle.title = `予定から取り込み: ${on ? 'ON' : 'OFF'}（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）`;
     document.documentElement.classList.toggle('nittei-clipper-capturing', on);
-    if (on) chrome.runtime.sendMessage({ type: 'open-panel' }); // パネルを一緒に開く
+    if (on) {
+      dismissHint();
+      chrome.runtime.sendMessage({ type: 'open-panel' }); // パネルを一緒に開く
+    }
   }
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && capturing) setCapturing(false);
   });
+
+  // ── 初回のみの説明吹き出し ──
+  async function maybeShowHint() {
+    try {
+      const { captureHintSeen } = await chrome.storage.sync.get('captureHintSeen');
+      if (captureHintSeen) return;
+      const hint = document.createElement('div');
+      hint.id = 'nittei-clipper-hint';
+      const text = document.createElement('span');
+      text.textContent = 'カレンダーの空き枠をドラッグして、そのまま候補にできます';
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.textContent = '✕';
+      close.setAttribute('aria-label', 'ヒントを閉じる');
+      close.addEventListener('click', dismissHint);
+      hint.append(text, close);
+      document.documentElement.appendChild(hint);
+    } catch { /* storage未対応環境ではヒントなしで動かす */ }
+  }
+  function dismissHint() {
+    document.getElementById('nittei-clipper-hint')?.remove();
+    chrome.storage?.sync?.set({ captureHintSeen: true });
+  }
 
   // ── datekey の変換 ──
   // Googleカレンダーの日付セルは data-datekey=((年-1970)<<9)|(月<<5)|日 を持つ
@@ -262,4 +293,5 @@
 
   document.documentElement.append(fab, toggle);
   refreshMarks();
+  maybeShowHint();
 })();

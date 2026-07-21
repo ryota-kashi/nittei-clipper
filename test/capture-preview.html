@@ -38,6 +38,7 @@
     } },
     storage: {
       session: { get: async () => ({ work: window.__work }) },
+      sync: { get: async () => ({}), set: (v) => { window.__syncSet = v; } },
       onChanged: { addListener: (fn) => window.__storageListeners.push(fn) },
     },
   };
