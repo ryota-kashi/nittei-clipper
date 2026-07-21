@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "日程クリッパー",
   "description": "日程候補の提案文をポップアップから素早く作成・コピーできる拡張機能です。",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "action": {
     "default_title": "日程クリッパー"
   },

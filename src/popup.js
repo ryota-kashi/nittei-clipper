@@ -332,6 +332,12 @@ document.getElementById('nextMonth').addEventListener('click', () =>
     if (s.view.month > 11) { s.view.month = 0; s.view.year++; }
   }));
 
+document.getElementById('clearBtn').addEventListener('click', () =>
+  update(s => {
+    s.slots = [];
+    s.editingId = null;
+  }));
+
 document.getElementById('copyBtn').addEventListener('click', () => {
   navigator.clipboard.writeText(OutputFormats.render(sortedSlots(), state.format))
     .then(() => {

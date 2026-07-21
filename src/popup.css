@@ -353,6 +353,19 @@ main { display: flex; flex-direction: column; gap: 14px; }
 .copy-btn:hover { opacity: .88; }
 .copy-btn.is-done { opacity: .92; }
 
+.clear-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  transition: background .15s, color .15s;
+}
+.clear-btn:hover { background: color-mix(in srgb, var(--sun) 10%, transparent); color: var(--sun); }
+
 .empty-hint {
   font-size: 11.5px;
   color: var(--muted);
