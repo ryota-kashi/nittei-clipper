@@ -59,7 +59,7 @@
   toggle.setAttribute('aria-pressed', 'false');
   const toggleLabel = document.createElement('span');
   toggleLabel.className = 'nc-capture-label';
-  toggleLabel.textContent = 'クリップ';
+  toggleLabel.textContent = 'カレンダーから日程を選択';
   toggle.append(icon(TARGET_PATHS), toggleLabel);
   toggle.addEventListener('click', () => setCapturing(!capturing));
 
@@ -69,7 +69,7 @@
     removeGhost();
     toggle.classList.toggle('is-on', on);
     toggle.setAttribute('aria-pressed', String(on));
-    toggleLabel.textContent = on ? 'クリップ中' : 'クリップ';
+    toggleLabel.textContent = on ? 'クリップ中' : 'カレンダーから日程を選択';
     toggle.title = `クリップ: ${on ? 'ON' : 'OFF'}（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）`;
     document.documentElement.classList.toggle('nittei-clipper-capturing', on);
     if (on) {
