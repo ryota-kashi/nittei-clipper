@@ -121,8 +121,15 @@
     return ((y - 1970) << 9) | (m << 5) | d;
   }
 
+  const DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
   const fmtMin = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
   const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+  // 'YYYY-MM-DD' → '7/22（水）'
+  function dateLabel(date) {
+    const [y, m, d] = date.split('-').map(Number);
+    return `${m}/${d}（${DOW_JA[new Date(y, m - 1, d).getDay()]}）`;
+  }
 
   // ── クリック / ドラッグの取り込み ──
   // 週/日表示の時間グリッド（背の高い列）: mousedown=開始、mouseup=終了。
@@ -206,6 +213,14 @@
     const [start, end] = cur >= drag.startMin ? [drag.startMin, cur] : [cur, drag.startMin];
     ghost.style.top = `${(start / 1440) * 100}%`;
     ghost.style.height = `${(Math.max(end - start, 30) / 1440) * 100}%`;
+    // 選択中の日時をゴースト内にリアルタイム表示
+    let label = ghost.querySelector('.nc-mark-label');
+    if (!label) {
+      label = document.createElement('span');
+      label.className = 'nc-mark-label';
+      ghost.appendChild(label);
+    }
+    label.textContent = `${dateLabel(drag.date)} ${fmtMin(start)}〜${end > start ? fmtMin(end) : ''}`;
   }
   function removeGhost() {
     document.querySelectorAll('.nittei-clipper-ghost').forEach(n => n.remove());
@@ -226,11 +241,16 @@
           const mark = document.createElement('div');
           mark.className = 'nittei-clipper-mark';
           if (rect.height > 400 && slot.start) {
-            // 週/日表示: 時間帯ブロック
+            // 週/日表示: 時間帯ブロック（日時ラベル付き）
             const start = toMin(slot.start);
             const end = slot.end ? toMin(slot.end) : start + 30;
             mark.style.top = `${(start / 1440) * 100}%`;
             mark.style.height = `${(Math.max(end - start, 15) / 1440) * 100}%`;
+            const label = document.createElement('span');
+            label.className = 'nc-mark-label';
+            label.textContent =
+              `${dateLabel(slot.date)} ${slot.start}〜${slot.end ?? ''}`;
+            mark.appendChild(label);
           } else if (rect.height > 60 && rect.height <= 400) {
             // 月表示: 下端のバー
             mark.classList.add('is-day');
@@ -281,11 +301,9 @@
       toast.id = TOAST_ID;
       document.documentElement.appendChild(toast);
     }
-    const [y, m, d] = date.split('-').map(Number);
-    const dow = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, m - 1, d).getDay()];
     const time = startMin == null ? ''
       : endMin == null ? ` ${fmtMin(startMin)}` : ` ${fmtMin(startMin)}〜${fmtMin(endMin)}`;
-    toast.textContent = `取り込み: ${m}/${d}（${dow}）${time}`;
+    toast.textContent = `取り込み: ${dateLabel(date)}${time}`;
     toast.classList.add('is-visible');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 1600);
