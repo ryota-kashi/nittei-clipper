@@ -373,7 +373,13 @@ document.getElementById('copyBtn').addEventListener('click', () => {
 // 挙動はパネル内の時間グリッドと同じ: 1回目=開始、同じ日の2回目=終了。
 
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // クリップモードの生存確認に応答する（パネルが閉じると誰も応答しなくなり、
+    // content script側が自動でクリップOFFにする）
+    if (message?.type === 'panel-ping') {
+      sendResponse({ alive: true });
+      return;
+    }
     // ドラッグでの範囲取り込み: 開始・終了が揃った候補をそのまま追加
     if (message?.type === 'gcal-pick-range') {
       update(s => {
@@ -415,5 +421,8 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
 
 (async () => {
   await restore();
+  // 保存し直すことでstorage.onChangedが発火し、パネルを開き直したときに
+  // カレンダー側のオーバーレイ表示が復元される
+  persist();
   render();
 })();

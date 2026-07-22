@@ -64,6 +64,20 @@
   toggle.append(icon(TARGET_PATHS), toggleLabel);
   toggle.addEventListener('click', () => setCapturing(!capturing));
 
+  // クリップON中はパネルの生存を定期確認し、応答が無ければ自動OFFする。
+  // （ポート経由の閉検知がどこかで死んでも、カレンダーが操作不能のまま
+  //   取り残されないための自己回復装置）
+  let pingTimer = null;
+  function pingPanel() {
+    try {
+      Promise.resolve(chrome.runtime.sendMessage({ type: 'panel-ping' }))
+        .then(res => { if (!res?.alive) setCapturing(false); })
+        .catch(() => setCapturing(false));
+    } catch {
+      setCapturing(false); // 拡張のコンテキストが無効化された場合など
+    }
+  }
+
   function setCapturing(on) {
     capturing = on;
     drag = null;
@@ -73,9 +87,12 @@
     toggleLabel.textContent = on ? 'クリップ中' : 'カレンダーから日程を選択';
     toggle.title = `クリップ: ${on ? 'ON' : 'OFF'}（ONの間、空き枠のクリックやドラッグを候補として取り込みます。Escで解除）`;
     document.documentElement.classList.toggle('nittei-clipper-capturing', on);
+    clearInterval(pingTimer);
+    pingTimer = null;
     if (on) {
       dismissHint();
       chrome.runtime.sendMessage({ type: 'open-panel' }); // パネルを一緒に開く
+      pingTimer = setInterval(pingPanel, 4000);
     }
   }
 
@@ -83,9 +100,12 @@
     if (e.key === 'Escape' && capturing) setCapturing(false);
   });
 
-  // サイドパネルが閉じられたらクリップモードも解除する
+  // サイドパネルが閉じられたらクリップモードを解除し、オーバーレイも隠す
+  // （候補データは残っているので、パネルを開き直せばマークも復元される）
   chrome.runtime.onMessage?.addListener((message) => {
-    if (message?.type === 'panel-closed' && capturing) setCapturing(false);
+    if (message?.type !== 'panel-closed') return;
+    if (capturing) setCapturing(false);
+    renderMarks([]);
   });
 
   // ── 初回のみの説明吹き出し ──

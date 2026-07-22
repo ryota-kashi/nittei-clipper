@@ -31,10 +31,12 @@
   window.__messages = [];
   window.__storageListeners = [];
   window.__work = { slots: [{ id: 1, date: '2026-07-22', start: '10:00', end: '11:30' }] };
+  window.__panelAlive = true; // ping応答の切替用
   window.chrome = {
     runtime: { sendMessage: (m) => {
       window.__messages.push(m);
       document.getElementById('log').textContent = JSON.stringify(window.__messages, null, 1);
+      return Promise.resolve(m.type === 'panel-ping' && window.__panelAlive ? { alive: true } : undefined);
     } },
     storage: {
       session: { get: async () => ({ work: window.__work }) },
