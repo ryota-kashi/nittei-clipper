@@ -29,9 +29,11 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onDisconnect.addListener(() => {
     panelPorts.delete(port);
     if (panelPorts.size > 0) return;
-    chrome.tabs.query({ url: 'https://calendar.google.com/*' }).then(tabs => {
+    // URLフィルタは権限条件で空になりうるため、全タブへ送って
+    // content scriptがいないタブの失敗は握りつぶす
+    chrome.tabs.query({}).then(tabs => {
       for (const tab of tabs) {
-        chrome.tabs.sendMessage(tab.id, { type: 'panel-closed' }).catch(() => {});
+        if (tab.id != null) chrome.tabs.sendMessage(tab.id, { type: 'panel-closed' }).catch(() => {});
       }
     }).catch(() => {});
   });

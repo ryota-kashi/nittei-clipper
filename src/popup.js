@@ -10,11 +10,18 @@ if (new URLSearchParams(location.search).get('view') === 'panel') {
 // パネルの生存をbackgroundに知らせるポート。
 // 切断（=パネルを閉じた）を合図に、カレンダー側のクリップモードが解除される。
 // backgroundから閉じる指示（カレンダーのボタンでのトグル）が来たら自分で閉じる。
+// サービスワーカーが再起動するとポートが切れるので、生きている間は張り直す。
 if (typeof chrome !== 'undefined' && chrome.runtime?.connect) {
-  const panelPort = chrome.runtime.connect({ name: 'nittei-panel' });
-  panelPort.onMessage.addListener((message) => {
-    if (message?.type === 'close') window.close();
-  });
+  const connectPanelPort = () => {
+    const port = chrome.runtime.connect({ name: 'nittei-panel' });
+    port.onMessage.addListener((message) => {
+      if (message?.type === 'close') window.close();
+    });
+    port.onDisconnect.addListener(() => {
+      setTimeout(connectPanelPort, 300);
+    });
+  };
+  connectPanelPort();
 }
 
 // ── 状態 ──────────────────────────────────────────
