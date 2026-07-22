@@ -9,8 +9,12 @@ if (new URLSearchParams(location.search).get('view') === 'panel') {
 
 // パネルの生存をbackgroundに知らせるポート。
 // 切断（=パネルを閉じた）を合図に、カレンダー側のクリップモードが解除される。
+// backgroundから閉じる指示（カレンダーのボタンでのトグル）が来たら自分で閉じる。
 if (typeof chrome !== 'undefined' && chrome.runtime?.connect) {
-  chrome.runtime.connect({ name: 'nittei-panel' });
+  const panelPort = chrome.runtime.connect({ name: 'nittei-panel' });
+  panelPort.onMessage.addListener((message) => {
+    if (message?.type === 'close') window.close();
+  });
 }
 
 // ── 状態 ──────────────────────────────────────────

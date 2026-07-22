@@ -44,7 +44,8 @@
   fab.setAttribute('aria-label', '日程クリッパーを開く');
   fab.appendChild(icon([CLIP_PATH]));
   fab.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'open-panel' });
+    // パネルが開いていれば閉じ、閉じていれば開く
+    chrome.runtime.sendMessage({ type: 'toggle-panel' });
   });
 
   // ── 取り込みモードのトグル ──
