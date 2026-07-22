@@ -20,6 +20,23 @@ chrome.action.onClicked.addListener(() => {
   });
 });
 
+// パネル（拡張ページ）が閉じられたらカレンダー側のクリップモードを解除する。
+// パネルは接続ポートを張っており、全ポートが切れた=表示中のパネルが無くなった合図。
+let panelPorts = 0;
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'nittei-panel') return;
+  panelPorts++;
+  port.onDisconnect.addListener(() => {
+    panelPorts--;
+    if (panelPorts > 0) return;
+    chrome.tabs.query({ url: 'https://calendar.google.com/*' }).then(tabs => {
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, { type: 'panel-closed' }).catch(() => {});
+      }
+    }).catch(() => {});
+  });
+});
+
 // Googleカレンダー上のボタンからの要求
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message?.type !== 'open-panel') return;

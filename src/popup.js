@@ -7,6 +7,12 @@ if (new URLSearchParams(location.search).get('view') === 'panel') {
   document.documentElement.classList.add('in-panel');
 }
 
+// パネルの生存をbackgroundに知らせるポート。
+// 切断（=パネルを閉じた）を合図に、カレンダー側のクリップモードが解除される。
+if (typeof chrome !== 'undefined' && chrome.runtime?.connect) {
+  chrome.runtime.connect({ name: 'nittei-panel' });
+}
+
 // ── 状態 ──────────────────────────────────────────
 
 // サイドパネルは長時間開いたままになるため、「今日」は描画のたびに求める

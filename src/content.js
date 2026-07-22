@@ -82,6 +82,11 @@
     if (e.key === 'Escape' && capturing) setCapturing(false);
   });
 
+  // サイドパネルが閉じられたらクリップモードも解除する
+  chrome.runtime.onMessage?.addListener((message) => {
+    if (message?.type === 'panel-closed' && capturing) setCapturing(false);
+  });
+
   // ── 初回のみの説明吹き出し ──
   async function maybeShowHint() {
     try {
