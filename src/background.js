@@ -29,6 +29,8 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onDisconnect.addListener(() => {
     panelPorts.delete(port);
     if (panelPorts.size > 0) return;
+    // パネルを閉じたら選択中の候補もリセットする
+    chrome.storage.session?.remove('work')?.catch?.(() => {});
     // URLフィルタは権限条件で空になりうるため、全タブへ送って
     // content scriptがいないタブの失敗は握りつぶす
     chrome.tabs.query({}).then(tabs => {
