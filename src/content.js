@@ -36,6 +36,37 @@
     'M12 2v3.2 M12 18.8V22 M2 12h3.2 M18.8 12H22',
   ];
 
+  // ── 拡張コンテキスト無効化への備え ──
+  // 拡張機能が再読み込みされると、このスクリプトは本体との接続を失う
+  // （chrome.runtime.* が "Extension context invalidated" を投げる）。
+  // その場合はUIを撤去して、ページの再読み込みを案内する。
+  let dead = false;
+  function send(message) {
+    if (dead) return Promise.resolve(null);
+    try {
+      return Promise.resolve(chrome.runtime.sendMessage(message)).catch(() => null);
+    } catch {
+      retire();
+      return Promise.resolve(null);
+    }
+  }
+  function retire() {
+    if (dead) return;
+    dead = true;
+    capturing = false;
+    document.documentElement.classList.remove('nittei-clipper-capturing');
+    removeGhost();
+    document.querySelectorAll('.nittei-clipper-mark').forEach(n => n.remove());
+    toggle.remove();
+    fab.remove();
+    document.getElementById('nittei-clipper-hint')?.remove();
+    const toast = document.createElement('div');
+    toast.id = TOAST_ID;
+    toast.textContent = '日程クリッパーが更新されました。ページを再読み込みしてください';
+    toast.classList.add('is-visible');
+    document.documentElement.appendChild(toast);
+  }
+
   // ── 起動ボタン ──
   const fab = document.createElement('button');
   fab.id = FAB_ID;
@@ -45,7 +76,7 @@
   fab.appendChild(icon([CLIP_PATH]));
   fab.addEventListener('click', () => {
     // パネルが開いていれば閉じ、閉じていれば開く
-    chrome.runtime.sendMessage({ type: 'toggle-panel' });
+    send({ type: 'toggle-panel' });
   });
 
   // ── 取り込みモードのトグル ──
@@ -69,13 +100,9 @@
   //   取り残されないための自己回復装置）
   let pingTimer = null;
   function pingPanel() {
-    try {
-      Promise.resolve(chrome.runtime.sendMessage({ type: 'panel-ping' }))
-        .then(res => { if (!res?.alive) setCapturing(false); })
-        .catch(() => setCapturing(false));
-    } catch {
-      setCapturing(false); // 拡張のコンテキストが無効化された場合など
-    }
+    send({ type: 'panel-ping' }).then(res => {
+      if (!res?.alive) setCapturing(false);
+    });
   }
 
   function setCapturing(on) {
@@ -91,7 +118,7 @@
     pingTimer = null;
     if (on) {
       dismissHint();
-      chrome.runtime.sendMessage({ type: 'open-panel' }); // パネルを一緒に開く
+      send({ type: 'open-panel' }); // パネルを一緒に開く
       pingTimer = setInterval(pingPanel, 4000);
     }
   }
@@ -128,7 +155,7 @@
   }
   function dismissHint() {
     document.getElementById('nittei-clipper-hint')?.remove();
-    chrome.storage?.sync?.set({ captureHintSeen: true });
+    try { chrome.storage?.sync?.set({ captureHintSeen: true }); } catch { retire(); }
   }
 
   // ── datekey の変換 ──
@@ -177,7 +204,7 @@
   }
 
   function handleEvent(e) {
-    if (!capturing) return;
+    if (dead || !capturing) return;
     const cell = cellAt(e);
     if (!cell && !(drag && (e.type === 'mouseup' || e.type === 'mousemove'))) return;
 
@@ -195,7 +222,7 @@
         drag = { date, rect, startMin: minutesAt(rect, e.clientY), cell };
         renderGhost(e.clientY);
       } else {
-        chrome.runtime.sendMessage({ type: 'gcal-pick', date, minutes: null });
+        send({ type: 'gcal-pick', date, minutes: null });
         showToast(date, null, null);
       }
       return;
@@ -211,10 +238,10 @@
       const [start, end] = endMin >= drag.startMin ? [drag.startMin, endMin] : [endMin, drag.startMin];
       if (start === end) {
         // ドラッグなし=クリック: 1回目=開始、同じ日の2回目=終了（パネル側のロジック）
-        chrome.runtime.sendMessage({ type: 'gcal-pick', date: drag.date, minutes: start });
+        send({ type: 'gcal-pick', date: drag.date, minutes: start });
         showToast(drag.date, start, null);
       } else {
-        chrome.runtime.sendMessage({ type: 'gcal-pick-range', date: drag.date, startMinutes: start, endMinutes: end });
+        send({ type: 'gcal-pick-range', date: drag.date, startMinutes: start, endMinutes: end });
         showToast(drag.date, start, end);
       }
       drag = null;

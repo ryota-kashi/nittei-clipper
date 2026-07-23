@@ -60,11 +60,18 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     return;
   }
   if (message?.type === 'toggle-panel') {
-    if (panelPorts.size > 0) {
-      // 開いているパネルに自分で閉じてもらう（sidePanelに直接closeは無い）
-      for (const port of panelPorts) port.postMessage({ type: 'close' });
-    } else {
-      openPanel(sender.tab?.windowId);
+    // 開いているパネルに自分で閉じてもらう（sidePanelに直接closeは無い）。
+    // 切断済みの残骸ポートへのpostMessageは例外を投げるため、
+    // 1つも生きたポートに届かなければ「閉じている」とみなして開く。
+    let delivered = false;
+    for (const port of [...panelPorts]) {
+      try {
+        port.postMessage({ type: 'close' });
+        delivered = true;
+      } catch {
+        panelPorts.delete(port); // 残骸を掃除
+      }
     }
+    if (!delivered) openPanel(sender.tab?.windowId);
   }
 });
